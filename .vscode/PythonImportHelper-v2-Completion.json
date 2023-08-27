@@ -1,0 +1,193 @@
+[
+    {
+        "label": "Server",
+        "importPath": "ldap3",
+        "description": "ldap3",
+        "isExtraImport": true,
+        "detail": "ldap3",
+        "documentation": {}
+    },
+    {
+        "label": "Connection",
+        "importPath": "ldap3",
+        "description": "ldap3",
+        "isExtraImport": true,
+        "detail": "ldap3",
+        "documentation": {}
+    },
+    {
+        "label": "ALL",
+        "importPath": "ldap3",
+        "description": "ldap3",
+        "isExtraImport": true,
+        "detail": "ldap3",
+        "documentation": {}
+    },
+    {
+        "label": "MyThread",
+        "importPath": "MyThread",
+        "description": "MyThread",
+        "isExtraImport": true,
+        "detail": "MyThread",
+        "documentation": {}
+    },
+    {
+        "label": "requests",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "requests",
+        "description": "requests",
+        "detail": "requests",
+        "documentation": {}
+    },
+    {
+        "label": "BeautifulSoup",
+        "importPath": "bs4",
+        "description": "bs4",
+        "isExtraImport": true,
+        "detail": "bs4",
+        "documentation": {}
+    },
+    {
+        "label": "base64",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "base64",
+        "description": "base64",
+        "detail": "base64",
+        "documentation": {}
+    },
+    {
+        "label": "Executor",
+        "importPath": "executor.safe_queue",
+        "description": "executor.safe_queue",
+        "isExtraImport": true,
+        "detail": "executor.safe_queue",
+        "documentation": {}
+    },
+    {
+        "label": "Job",
+        "importPath": "executor.safe_queue",
+        "description": "executor.safe_queue",
+        "isExtraImport": true,
+        "detail": "executor.safe_queue",
+        "documentation": {}
+    },
+    {
+        "label": "numpy",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "numpy",
+        "description": "numpy",
+        "detail": "numpy",
+        "documentation": {}
+    },
+    {
+        "label": "pandas",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pandas",
+        "description": "pandas",
+        "detail": "pandas",
+        "documentation": {}
+    },
+    {
+        "label": "pymysql",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pymysql",
+        "description": "pymysql",
+        "detail": "pymysql",
+        "documentation": {}
+    },
+    {
+        "label": "server",
+        "kind": 5,
+        "importPath": "ldap",
+        "description": "ldap",
+        "peekOfCode": "server = Server('ipa.demo1.freeipa.org', get_info=ALL)\nconn = Connection(server, 'uid=admin,cn=users,cn=accounts,dc=demo1,dc=freeipa,dc=org', 'Secret123', auto_bind=True)\nconn.search('dc=demo1,dc=freeipa,dc=org', '(objectclass=person)')\nconn.entriess",
+        "detail": "ldap",
+        "documentation": {}
+    },
+    {
+        "label": "conn",
+        "kind": 5,
+        "importPath": "ldap",
+        "description": "ldap",
+        "peekOfCode": "conn = Connection(server, 'uid=admin,cn=users,cn=accounts,dc=demo1,dc=freeipa,dc=org', 'Secret123', auto_bind=True)\nconn.search('dc=demo1,dc=freeipa,dc=org', '(objectclass=person)')\nconn.entriess",
+        "detail": "ldap",
+        "documentation": {}
+    },
+    {
+        "label": "contents_appending",
+        "kind": 2,
+        "importPath": "myjob",
+        "description": "myjob",
+        "peekOfCode": "def contents_appending(result):\n    global newlinks\n    if result:\n        newlinks += result.split()\ndef check_link(params):\n    url = params[0]\n    try:\n        for k, v in url.items():\n            rq = requests.get(v, timeout=5000)\n            if k == 'code':",
+        "detail": "myjob",
+        "documentation": {}
+    },
+    {
+        "label": "check_link",
+        "kind": 2,
+        "importPath": "myjob",
+        "description": "myjob",
+        "peekOfCode": "def check_link(params):\n    url = params[0]\n    try:\n        for k, v in url.items():\n            rq = requests.get(v, timeout=5000)\n            if k == 'code':\n                source_content = rq.content.decode(encoding='utf-8')\n                soup = BeautifulSoup(source_content, 'html.parser')\n                code = soup.find_all('code')[-1]\n                filecontent = code.get_text()",
+        "detail": "myjob",
+        "documentation": {}
+    },
+    {
+        "label": "sub_url",
+        "kind": 5,
+        "importPath": "myjob",
+        "description": "myjob",
+        "peekOfCode": "sub_url = [\n    # \"http://122.225.207.101:8080/ipns/k2k4r8kms1l1k3wljk4o8eopnb2dltfvh8pypr0zkeyjunyagft3aqvs/\",\n    # \"https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray\",\n    {'raw': \"https://raw.fastgit.org/freefq/free/master/v2\"},\n    {'raw': \"https://raw.githubusercontent.com/tbbatbb/Proxy/master/dist/v2ray.config.txt\"},\n    {'code': \"https://github.com/mianfeifq/share\"},\n    {'raw': \"https://raw.githubusercontent.com/mahdibland/ShadowsocksAggregator/master/Eternity\"},\n    # {'raw': \"https://raw.githubusercontent.com/mheidari98/.proxy/main/all\"},\n    # {'code': \"https://github.com/mksshare/mksshare.github.io/blob/main/README.md\"},\n    # {'raw': \"https://raw.fastgit.org/Pawdroid/Free-servers/main/sub\"},",
+        "detail": "myjob",
+        "documentation": {}
+    },
+    {
+        "label": "newlinks",
+        "kind": 5,
+        "importPath": "myjob",
+        "description": "myjob",
+        "peekOfCode": "newlinks = []\ndef contents_appending(result):\n    global newlinks\n    if result:\n        newlinks += result.split()\ndef check_link(params):\n    url = params[0]\n    try:\n        for k, v in url.items():\n            rq = requests.get(v, timeout=5000)",
+        "detail": "myjob",
+        "documentation": {}
+    },
+    {
+        "label": "threador",
+        "kind": 5,
+        "importPath": "myjob",
+        "description": "myjob",
+        "peekOfCode": "threador = MyThread(check_link, sub_url, contents_appending, len(sub_url))\nthreador.execute()\nwith open('./links.txt', 'r') as f:\n    oldlinks = f.read().split()\n    append_new_links = set(newlinks) - set(oldlinks)\n    new_str = \"\\n\".join(append_new_links)\n    with open('./newlinks.txt', 'w') as nf:\n        nf.write(new_str)\nwith open('./links.txt', 'a') as f:\n    f.write(new_str)",
+        "detail": "myjob",
+        "documentation": {}
+    },
+    {
+        "label": "MyThread",
+        "kind": 6,
+        "importPath": "MyThread",
+        "description": "MyThread",
+        "peekOfCode": "class MyThread:\n    # 配置\n    param = []\n    engine: Executor\n    # 下载订阅链接将其合并\n    sub_link = []\n    thread_num = 1\n    def __init__(self, func, param, callback, thread_num=1) -> None:\n        self.func = func\n        self.param = param",
+        "detail": "MyThread",
+        "documentation": {}
+    },
+    {
+        "label": "get_conn",
+        "kind": 2,
+        "importPath": "test",
+        "description": "test",
+        "peekOfCode": "def get_conn(**kwargs):\n    conn = pymysql.connect(**kwargs)\n    try:\n        yield conn\n    finally:\n        conn.close()\nconn = get_conn(host='localhost',user='root',passwd='secret')\nfor a in conn:\n    cur =  a.cursor()\n    b = cur.execute('select * from ticket.feel_city')",
+        "detail": "test",
+        "documentation": {}
+    },
+    {
+        "label": "conn",
+        "kind": 5,
+        "importPath": "test",
+        "description": "test",
+        "peekOfCode": "conn = get_conn(host='localhost',user='root',passwd='secret')\nfor a in conn:\n    cur =  a.cursor()\n    b = cur.execute('select * from ticket.feel_city')\n    print(cur.fetchall())",
+        "detail": "test",
+        "documentation": {}
+    }
+]
