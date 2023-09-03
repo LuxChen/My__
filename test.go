@@ -124,26 +124,26 @@ func main() {
 	// 	}
 	// }
 	// <-t
-	// cmd := exec.Command("git", "add", "my_file.txt")
-	// stdout, err := cmd.Output()
-
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// 	return
-	// }
-
-	// fmt.Print(string(stdout))
-	// cmd = exec.Command("git", "commit", "-m", "update")
-	// stdout, err = cmd.Output()
-
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// 	return
-	// }
-
-	// fmt.Print(string(stdout))
-	cmd := exec.Command("git", "push")
+	cmd := exec.Command("git", "add", "test.go")
 	stdout, err := cmd.Output()
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	fmt.Print(string(stdout))
+	cmd = exec.Command("git", "commit", "-m", "update")
+	stdout, err = cmd.Output()
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	fmt.Print(string(stdout))
+	cmd = exec.Command("git", "push")
+	stdout, err = cmd.Output()
 
 	if err != nil {
 		fmt.Println(err.Error())
