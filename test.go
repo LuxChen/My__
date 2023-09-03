@@ -124,7 +124,7 @@ func main() {
 	// 	}
 	// }
 	// <-t
-	cmd := exec.Command("git", "add", "test.go")
+	cmd := exec.Command("git", "add", "my_file.txt")
 	stdout, err := cmd.Output()
 
 	if err != nil {
