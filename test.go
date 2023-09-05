@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -48,82 +49,82 @@ var urls = map[string]string{
 }
 
 func main() {
-	// ch := make(chan string)
-	// for url := range urls {
-	// 	go fetchUrl(fmt.Sprintf("%v", url), ch)
-	// }
-	// // log.Print(err)
-	// // log.Print(data_str)
-	// allFinish := len(urls)
-	// finished := 0
-	// nodes := ""
-	// for {
-	// 	time.Sleep(time.Millisecond * 1e2)
-	// 	if allFinish == finished {
-	// 		print("finished")
-	// 		break
-	// 	}
-	// 	nam := <-ch
-	// 	print(nam)
-	// 	if nam != "fail" {
-	// 		nodes = nodes + nam
-	// 	}
-	// 	finished++
-	// }
-	// // Split the string.
-	// wfile, _ := os.OpenFile("my_file.txt", os.O_CREATE|os.O_TRUNC, 0644)
-	// slices := strings.Split(nodes, "\n")
-	// t := time.After(time.Second * 5)
-	// // Print the slices.
-	// for _, slice := range slices {
-	// 	p_v := strings.Split(slice, "://")
-	// 	if len(p_v) < 2 {
-	// 		continue
-	// 	}
-	// 	decodedBytes, _ := base64.StdEncoding.DecodeString(p_v[1])
-	// 	switch p_v[0] {
+	ch := make(chan string)
+	for url := range urls {
+		go fetchUrl(fmt.Sprintf("%v", url), ch)
+	}
+	// log.Print(err)
+	// log.Print(data_str)
+	allFinish := len(urls)
+	finished := 0
+	nodes := ""
+	for {
+		time.Sleep(time.Millisecond * 1e2)
+		if allFinish == finished {
+			print("finished")
+			break
+		}
+		nam := <-ch
+		print(nam)
+		if nam != "fail" {
+			nodes = nodes + nam
+		}
+		finished++
+	}
+	// Split the string.
+	wfile, _ := os.OpenFile("my_file.txt", os.O_CREATE|os.O_TRUNC, 0644)
+	slices := strings.Split(nodes, "\n")
+	t := time.After(time.Second * 5)
+	// Print the slices.
+	for _, slice := range slices {
+		p_v := strings.Split(slice, "://")
+		if len(p_v) < 2 {
+			continue
+		}
+		decodedBytes, _ := base64.StdEncoding.DecodeString(p_v[1])
+		switch p_v[0] {
 
-	// 	case "vmess":
-	// 		{
+		case "vmess":
+			{
 
-	// 			// Unmarshal the string.
-	// 			var data map[string]interface{}
-	// 			err := json.Unmarshal([]byte(string(decodedBytes)), &data)
-	// 			if err != nil {
-	// 				fmt.Println(err)
-	// 				return
-	// 			}
+				// Unmarshal the string.
+				var data map[string]interface{}
+				err := json.Unmarshal([]byte(string(decodedBytes)), &data)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
 
-	// 			// Print the data.
-	// 			address := data["host"]
-	// 			port := fmt.Sprintf("%v", data["port"])
-	// 			if data["path"] == nil || data["path"] == "" {
-	// 				data["path"] = "/"
-	// 			}
-	// 			path := data["path"]
-	// 			go testConn(slice, address, port, path, *wfile)
-	// 		}
-	// 		// case "ss":
-	// 		// 	{
+				// Print the data.
+				address := data["host"]
+				port := fmt.Sprintf("%v", data["port"])
+				if data["path"] == nil || data["path"] == "" {
+					data["path"] = "/"
+				}
+				path := data["path"]
+				go testConn(slice, address, port, path, *wfile)
+			}
+			// case "ss":
+			// 	{
 
-	// 		// 		server := strings.Split(strings.Split(p_v[1], "@")[1], "#")[0]
-	// 		// 		p_g := strings.Split(string(decodedBytes), ":")
-	// 		// 		c, _ := shadowsocks.NewCipher(p_g[0], p_g[1])
-	// 		// 		ss, err := shadowsocks.Dial(server, server, c)
-	// 		// 		if err == nil {
-	// 		// 			_, err := ss.Write([]byte("GET / HTTP/1.1\r\nHost: www.google.com\r\n\r\n"))
-	// 		// 			if err != nil {
-	// 		// 				log.Print(err)
-	// 		// 			}
-	// 		// 			log.Print(slice)
-	// 		// 		}
-	// 		// 		log.Print(err)
+			// 		server := strings.Split(strings.Split(p_v[1], "@")[1], "#")[0]
+			// 		p_g := strings.Split(string(decodedBytes), ":")
+			// 		c, _ := shadowsocks.NewCipher(p_g[0], p_g[1])
+			// 		ss, err := shadowsocks.Dial(server, server, c)
+			// 		if err == nil {
+			// 			_, err := ss.Write([]byte("GET / HTTP/1.1\r\nHost: www.google.com\r\n\r\n"))
+			// 			if err != nil {
+			// 				log.Print(err)
+			// 			}
+			// 			log.Print(slice)
+			// 		}
+			// 		log.Print(err)
 
-	// 		// 	}
+			// 	}
 
-	// 	}
-	// }
-	// <-t
+		}
+	}
+	<-t
 	cmd := exec.Command("git", "add", "my_file.txt")
 	stdout, err := cmd.Output()
 
