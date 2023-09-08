@@ -13,10 +13,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"nhooyr.io/websocket"
 )
 
-func fetchUrl(url string, ch chan string) (string, error) {
+func fetchUrl(url string, t string, ch chan string) (string, error) {
 	log.Print(urls[url])
 	resp, err := http.Get(url)
 	if err != nil {
@@ -26,6 +27,18 @@ func fetchUrl(url string, ch chan string) (string, error) {
 
 	defer resp.Body.Close()
 
+	if t == "code" {
+		// Load the HTML document
+		doc, err := goquery.NewDocumentFromReader(resp.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Find the review items
+		result := doc.Find("code").Text()
+		ch <- result
+		return result, nil
+	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		ch <- "fail"
@@ -50,8 +63,8 @@ var urls = map[string]string{
 
 func main() {
 	ch := make(chan string)
-	for url := range urls {
-		go fetchUrl(fmt.Sprintf("%v", url), ch)
+	for url, t := range urls {
+		go fetchUrl(fmt.Sprintf("%v", url), t, ch)
 	}
 	// log.Print(err)
 	// log.Print(data_str)
