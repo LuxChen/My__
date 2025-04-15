@@ -15,7 +15,7 @@ SEARCH_KEYWORDS = [
 MAX_REPOS_PER_KEYWORD = 5   # 每个关键词搜索多少个仓库
 MAX_WORKERS = 10           # 并发下载和提取的最大线程数
 MAX_NODES_PER_FILE = 50   # 单个文件提取节点上限
-OUTPUT_FILE = "collected_nodes.txt" # 输出文件名
+OUTPUT_FILE = "newlinks.txt" # 输出文件名
 
 # --- GitHub API 请求头 ---
 headers = {'Accept': 'application/vnd.github.v3+json'}
