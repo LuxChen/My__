@@ -6,9 +6,14 @@ import time # 保留 time 用于计算总耗时
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse
 import os
+from dotenv import load_dotenv
 # --- 配置 ---
 # 从本地环境变量中获取 GitHub Token
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')  # 如果未设置环境变量，默认为空字符串
+# Load environment variables from a .env file
+load_dotenv()
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')
+print(GITHUB_TOKEN)
+exit()
 SEARCH_KEYWORDS = [
     "vmess"
 ]
