@@ -12,8 +12,6 @@ from dotenv import load_dotenv
 # Load environment variables from a .env file
 load_dotenv()
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')
-print(GITHUB_TOKEN)
-exit()
 SEARCH_KEYWORDS = [
     "vmess"
 ]
