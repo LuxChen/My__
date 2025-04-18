@@ -86,7 +86,7 @@ def extract_nodes_from_file(file_url):
 
         # 简化 Base64 处理 (仅文本块)
         potential_base64_blocks = re.findall(r'\b[A-Za-z0-9+/]{20,}={0,2}\b', content)
-        for b64_block in potential_base64_blocks:
+        for b64_block in potential_base64_blocks[:3]:
              try:
                 cleaned_b64 = "".join(b64_block.split())
                 missing_padding = len(cleaned_b64) % 4
