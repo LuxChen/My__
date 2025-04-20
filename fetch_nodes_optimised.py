@@ -59,11 +59,7 @@ def get_repo_content_urls(repo_info):
             fetch_count = 0
             for item in contents:
                 file_name = item['name'].lower()
-                if item['type'] == 'file' and '自建' not in file_name and '一键' not in file_name and (
-                    file_name.endswith(('.txt', '.md')) or
-                    'sub' in item['name'].lower() or 'node' in item['name'].lower() or
-                    'v2ray' in item['name'].lower() or 'clash' in item['name'].lower()
-                ):
+                if item['type'] == 'file' and 'readme.md' == file_name:
                     # fetch_count 大于3时退出
                     if fetch_count >= 3:
                         break
@@ -103,9 +99,9 @@ def extract_nodes_from_file(file_url):
                  pass # 忽略解码错误
 
         # 检查文件节点数是否超限
-        if len(nodes_in_file) > MAX_NODES_PER_FILE:
-            print(f"    [!] 忽略文件 (节点过多 > {MAX_NODES_PER_FILE}): {urlparse(file_url).path.split('/')[-1]} (找到 {len(nodes_in_file)} 个)")
-            return set() # 返回空集合
+        # if len(nodes_in_file) > MAX_NODES_PER_FILE:
+        #     print(f"    [!] 忽略文件 (节点过多 > {MAX_NODES_PER_FILE}): {urlparse(file_url).path.split('/')[-1]} (找到 {len(nodes_in_file)} 个)")
+        #     return set() # 返回空集合
 
         # 如果数量在限制内，返回找到的节点
         if nodes_in_file:
