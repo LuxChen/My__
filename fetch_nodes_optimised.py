@@ -32,7 +32,7 @@ def search_github_repositories(keyword):
     """使用 GitHub API 搜索仓库"""
     print(f"[*] 正在搜索关键词: {keyword}")
 
-    search_url = f"https://api.github.com/search/repositories?q={keyword}&sort=updated&order=desc&per_page=10"
+    search_url = f"https://api.github.com/search/repositories?q={keyword}&sort=updated&order=desc&per_page=30"
     try:
         response = requests.get(search_url, headers=headers, timeout=15)
         response.raise_for_status()
@@ -56,6 +56,7 @@ def get_repo_content_urls(repo_info):
         response.raise_for_status()
         contents = response.json()
         if isinstance(contents, list):
+            fetch_count = 0
             for item in contents:
                 file_name = item['name'].lower()
                 if item['type'] == 'file' and '自建' not in file_name and '一键' not in file_name and (
@@ -63,8 +64,12 @@ def get_repo_content_urls(repo_info):
                     'sub' in item['name'].lower() or 'node' in item['name'].lower() or
                     'v2ray' in item['name'].lower() or 'clash' in item['name'].lower()
                 ):
+                    # fetch_count 大于3时退出
+                    if fetch_count >= 3:
+                        break
                     if item.get('download_url'):
-                         files_to_check.append(item['download_url'])
+                        fetch_count += 1
+                        files_to_check.append(item['download_url'])
     except Exception:
         pass # 忽略获取内容失败的仓库
     return files_to_check
