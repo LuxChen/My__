@@ -2,9 +2,10 @@ import requests
 import re
 import base64
 import json
-import time # 保留 time 用于计算总耗时
+import time
+import socket
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 import os
 from dotenv import load_dotenv
 # --- 配置 ---
@@ -115,6 +116,52 @@ def extract_nodes_from_file(file_url):
         # print(f"    [!] 处理文件时出错: {file_url} ({e})")
         return set()
 
+def parse_node_link(node_link):
+    """解析节点链接，返回 (地址, 端口) 或 None"""
+    try:
+        if node_link.startswith('vmess://'):
+            try:
+                decoded_part = base64.b64decode(node_link[8:]).decode('utf-8')
+                node_data = json.loads(decoded_part)
+                return node_data.get('add'), int(node_data.get('port', 0))
+            except (json.JSONDecodeError, TypeError, base64.binascii.Error):
+                 return None # 解码或解析失败
+        elif node_link.startswith(('vless://', 'trojan://')):
+            parsed_url = urlparse(node_link)
+            # VLESS/Trojan 链接格式: vless://uuid@host:port?params
+            # 有些链接可能没有显式端口，需要从参数中解析或使用默认值
+            port = parsed_url.port if parsed_url.port else 443
+            return parsed_url.hostname, port
+        elif node_link.startswith('ss://'):
+            # SS 链接格式: ss://method:password@host:port
+            # 简单解析，可能需要更复杂的处理来应对 Base64 编码的部分
+            first_part = node_link.split('@')[0]
+            second_part = node_link.split('@')[1]
+            # 移除协议头和用户信息
+            address_part = second_part.split('#')[0] # 移除备注
+            host, port_str = address_part.rsplit(':', 1)
+            return host, int(port_str)
+    except Exception:
+        return None # 任何解析错误都返回 None
+    return None
+
+def test_node_latency(node_link, timeout=2):
+    """测试单个节点的 TCP 连接延迟"""
+    parsed_info = parse_node_link(node_link)
+    if not parsed_info or not parsed_info[0] or not parsed_info[1]:
+        return None, float('inf') # 无法解析或信息不全
+
+    address, port = parsed_info
+    try:
+        start_time = time.time()
+        with socket.create_connection((address, port), timeout=timeout) as sock:
+            end_time = time.time()
+            latency = (end_time - start_time) * 1000 # 转换为毫秒
+            return node_link, latency
+    except (socket.timeout, ConnectionRefusedError, OSError):
+        return None, float('inf') # 连接失败
+    except Exception:
+        return None, float('inf') # 其他异常
 
 # --- 主逻辑 ---
 if __name__ == "__main__":
@@ -176,21 +223,40 @@ if __name__ == "__main__":
     end_time_main = time.time()
     print(f"--- 收集结束 (耗时: {end_time_main - start_time_main:.2f} 秒) ---")
 
-    # 3. 输出结果
-    print(f"[*] 总共收集到 {len(all_collected_nodes)} 个唯一的节点链接。")
+    # 3. 测试节点延迟并排序
+    print(f"\n[阶段 3/3] 测试 {len(all_collected_nodes)} 个节点的延迟...")
+    valid_nodes = []
+    if all_collected_nodes:
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS * 2) as executor: # 可以为 I/O 密集型任务增加线程数
+            future_to_node = {executor.submit(test_node_latency, node): node for node in all_collected_nodes}
+            tested_count = 0
+            total_nodes_to_test = len(all_collected_nodes)
+            for future in as_completed(future_to_node):
+                node, latency = future.result()
+                tested_count += 1
+                if node:
+                    valid_nodes.append((node, latency))
+                    print(f"\r    [+] 有效节点: {len(valid_nodes)} | 测试进度: {tested_count}/{total_nodes_to_test} | 最新延迟: {latency:.2f} ms", end="")
+                else:
+                    print(f"\r    [+] 有效节点: {len(valid_nodes)} | 测试进度: {tested_count}/{total_nodes_to_test} | (节点无效或超时)", end="")
+        
+        # 按延迟排序
+        valid_nodes.sort(key=lambda x: x[1])
+        print("\n[*] 节点延迟测试完成。")
 
-    if not all_collected_nodes:
-        print("[!] 未找到任何节点信息。")
+    # 4. 输出结果
+    print(f"\n[*] 总共收集到 {len(all_collected_nodes)} 个唯一节点，其中 {len(valid_nodes)} 个有效。")
+
+    if not valid_nodes:
+        print("[!] 未找到任何有效的节点。")
         exit()
 
-    print(f"\n[*] 将结果写入文件: {OUTPUT_FILE}")
+    print(f"\n[*] 将 {len(valid_nodes)} 个有效节点按延迟排序后写入文件: {OUTPUT_FILE}")
     try:
         with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-            # 将集合转换为列表，然后写入，可以保证某种顺序（但不一定是特定顺序）
-            nodes_list = list(all_collected_nodes)
-            for node_link in nodes_list:
-                f.write(node_link + '\n')
-        print(f"[*] 成功将 {len(all_collected_nodes)} 个节点写入 {OUTPUT_FILE}")
+            for node_link, latency in valid_nodes:
+                f.write(f"{node_link}\n") # 只写入链接
+        print(f"[*] 成功将 {len(valid_nodes)} 个有效节点写入 {OUTPUT_FILE}")
     except IOError as e:
         print(f"[!] 写入文件时出错: {e}")
 
