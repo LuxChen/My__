@@ -282,3 +282,12 @@ if __name__ == "__main__":
     
     end_time = time.time()
     logging.info(f"\n--- 任务完成 (总耗时: {end_time - start_time:.2f} 秒) ---")
+    #将newlinks.txt修改通过 os command提交到github
+    if os.path.exists(OUTPUT_FILE):
+        os.system(f"git add {OUTPUT_FILE}")
+        os.system('git commit -m "Update newlinks.txt with latest nodes"')
+        os.system("git push")  # 假设主分支为 main
+    else:
+        logging.error(f"输出文件 {OUTPUT_FILE} 不存在，无法提交到 GitHub。")
+    
+    
