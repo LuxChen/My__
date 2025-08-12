@@ -9,6 +9,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse, unquote
 import os
 from dotenv import load_dotenv
+from git import Repo
+try:
+    from git import Repo, exc
+    GITPYTHON_INSTALLED = True
+except ImportError:
+    GITPYTHON_INSTALLED = False
+
 
 # --- 配置 ---
 # Load environment variables from a .env file
@@ -270,6 +277,36 @@ def output_phase(valid_nodes):
         logging.info(f"成功将 {len(valid_nodes)} 个有效节点（Base64编码）写入 {OUTPUT_FILE}")
     except IOError as e:
         logging.error(f"写入文件时出错: {e}")
+        
+def commit_and_push_results():
+    """使用 GitPython 将结果提交并推送到GitHub (Commit and push results to GitHub using GitPython)"""
+    if not GITPYTHON_INSTALLED:
+        logging.warning("GitPython 未安装，跳过自动提交。请运行 'pip install GitPython'。")
+        return
+
+    if not os.path.exists(OUTPUT_FILE):
+        logging.warning(f"输出文件 {OUTPUT_FILE} 不存在，跳过提交。")
+        return
+    
+    try:
+        logging.info("正在将结果提交到GitHub...")
+        repo = Repo(os.getcwd())
+        if not repo.is_dirty(path=OUTPUT_FILE) and OUTPUT_FILE not in repo.untracked_files:
+            logging.info("文件没有变化，无需提交。")
+            return
+
+        repo.git.add(OUTPUT_FILE)
+        commit_message = f"Update nodes on {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}"
+        repo.git.commit('-m', commit_message)
+        
+        logging.info("正在推送到远程仓库...")
+        origin = repo.remote(name='origin')
+        origin.push()
+        logging.info("成功提交并推送到GitHub。")
+    except exc.InvalidGitRepositoryError:
+        logging.error("错误：脚本不在一个Git仓库中运行。")
+    except Exception as e:
+        logging.error(f"发生未知的Git操作错误: {e}")        
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -279,15 +316,6 @@ if __name__ == "__main__":
     extraction_phase(file_urls_to_process)
     tested_nodes = testing_phase()
     output_phase(tested_nodes)
-    
+    commit_and_push_results()
     end_time = time.time()
     logging.info(f"\n--- 任务完成 (总耗时: {end_time - start_time:.2f} 秒) ---")
-    #将newlinks.txt修改通过 os command提交到github
-    if os.path.exists(OUTPUT_FILE):
-        os.system(f"git add {OUTPUT_FILE}")
-        os.system('git commit -m "Update newlinks.txt with latest nodes"')
-        os.system("git push")  # 假设主分支为 main
-    else:
-        logging.error(f"输出文件 {OUTPUT_FILE} 不存在，无法提交到 GitHub。")
-    
-    
