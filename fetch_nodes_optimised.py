@@ -9,13 +9,32 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse, unquote
 import os
 from dotenv import load_dotenv
-from git import Repo
-try:
-    from git import Repo, exc
-    GITPYTHON_INSTALLED = True
-except ImportError:
-    GITPYTHON_INSTALLED = False
+# from git import Repo
+# try:
+#     from git import Repo, exc
+#     GITPYTHON_INSTALLED = True
+# except ImportError:
+#     GITPYTHON_INSTALLED = False
 
+# --- 线程安全的节点收集器 ---
+import threading
+
+class ThreadSafeNodeCollector:
+    def __init__(self):
+        self.nodes = set()
+        self.lock = threading.Lock()
+    
+    def add(self, nodes):
+        with self.lock:
+            self.nodes.update(nodes)
+    
+    def get_all(self):
+        with self.lock:
+            return self.nodes.copy()
+    
+    def __len__(self):
+        with self.lock:
+            return len(self.nodes)
 
 # --- 配置 ---
 # Load environment variables from a .env file
@@ -38,15 +57,23 @@ headers = {'Accept': 'application/vnd.github.v3+json'}
 if GITHUB_TOKEN:
     headers['Authorization'] = f'token {GITHUB_TOKEN}'
 
+# --- 创建带连接池的会话 ---
+session = requests.Session()
+session.headers.update(headers)
+
+# --- 预编译正则表达式 ---
+PROTOCOL_PATTERNS = {proto: re.compile(rf"{proto}[^\s\'\"<>\[\]\(\{{}}]+") 
+                     for proto in ['vmess://', 'vless://', 'trojan://', 'ss://', 'ssr://']}
+
 # --- 全局变量 ---
-all_collected_nodes = set() # 使用集合存储所有唯一的节点链接
+node_collector = ThreadSafeNodeCollector() # 使用线程安全的节点收集器
 
 def search_github_repositories(keyword, page=1):
     """使用 GitHub API 搜索仓库，支持分页"""
     logging.info(f"正在搜索关键词: '{keyword}' (第 {page} 页)")
     search_url = f"https://api.github.com/search/repositories?q={keyword}&sort=updated&order=desc&per_page=100&page={page}"
     try:
-        response = requests.get(search_url, headers=headers, timeout=15)
+        response = session.get(search_url, timeout=15)
         response.raise_for_status()
         return response.json().get('items', [])
     except requests.RequestException as e:
@@ -56,12 +83,15 @@ def search_github_repositories(keyword, page=1):
         logging.error(f"搜索关键词 '{keyword}' 时发生未知错误: {e}")
         return []
 
-def get_repo_files_recursive(repo_name, path=''):
+def get_repo_files_recursive(repo_name, path='', depth=0, max_depth=1):
     """递归获取仓库中所有文件的下载链接"""
+    if depth > max_depth:
+        return []
+    
     contents_url = f"https://api.github.com/repos/{repo_name}/contents/{path}"
     try:
         logging.info(f"正在获取仓库 {repo_name} 的内容: {path}")
-        response = requests.get(contents_url, headers=headers, timeout=10)
+        response = session.get(contents_url, timeout=10)
         if response.status_code == 404:
             return []
         response.raise_for_status()
@@ -80,10 +110,8 @@ def get_repo_files_recursive(repo_name, path=''):
                     if item.get('download_url'):
                         file_urls.append(item['download_url'])
             elif item['type'] == 'dir':
-                pass
-                # 递归进入子目录
-                # time.sleep(0.1) # 避免过于频繁的 API 请求
-                # file_urls.extend(get_repo_files_recursive(repo_name, item['path']))
+                time.sleep(0.1)  # 避免过于频繁的 API 请求
+                file_urls.extend(get_repo_files_recursive(repo_name, item['path'], depth+1, max_depth))
         logging.info(f"仓库 {repo_name} 的路径 '{path}' 中找到 {len(file_urls)} 个文件链接")
         return file_urls
     except requests.RequestException:
@@ -94,20 +122,19 @@ def get_repo_files_recursive(repo_name, path=''):
 def extract_nodes_from_content(content):
     """从文本内容中提取节点链接"""
     nodes = set()
-    protocols = ['vmess://', 'vless://', 'trojan://', 'ss://', 'ssr://']
     
     # 1. 直接匹配协议链接
-    for proto in protocols:
-        found = re.findall(rf"{proto}[^\s\'\"<>\[\]\(\{{}}]+", content)
+    for proto, pattern in PROTOCOL_PATTERNS.items():
+        found = pattern.findall(content)
         nodes.update(found)
 
     # 2. 尝试解码 Base64 编码的订阅内容
     try:
         # 假设整个文件内容可能是 Base64 编码的订阅
-        if len(content) > 50 and not any(p in content for p in protocols):
+        if len(content) > 50 and not any(p in content for p in PROTOCOL_PATTERNS.keys()):
             decoded_content = base64.b64decode(content).decode('utf-8', errors='ignore')
-            for proto in protocols:
-                found_in_b64 = re.findall(rf"{proto}[^\s\'\"<>\[\]\(\{{}}]+", decoded_content)
+            for proto, pattern in PROTOCOL_PATTERNS.items():
+                found_in_b64 = pattern.findall(decoded_content)
                 nodes.update(found_in_b64)
     except Exception:
         pass # 忽略解码错误
@@ -117,7 +144,7 @@ def extract_nodes_from_content(content):
 def process_file_url(file_url):
     """下载单个文件并提取节点"""
     try:
-        response = requests.get(file_url, headers=headers, timeout=15)
+        response = session.get(file_url, timeout=15)
         response.raise_for_status()
         content = response.text
         
@@ -217,13 +244,12 @@ def extraction_phase(file_urls):
             try:
                 nodes_from_file = future.result()
                 if nodes_from_file:
-                    count_before = len(all_collected_nodes)
-                    all_collected_nodes.update(nodes_from_file)
-                    added_count = len(all_collected_nodes) - count_before
+                    node_collector.add(nodes_from_file)
+                    added_count = len(nodes_from_file)
                     if added_count > 0:
-                        logging.info(f"新增 {added_count} 个唯一节点 (总计: {len(all_collected_nodes)})")
+                        logging.info(f"新增 {added_count} 个唯一节点 (总计: {len(node_collector)})")
                 
-                print(f"\r处理进度: {i}/{len(file_urls)} | 当前收集: {len(all_collected_nodes)} 个", end="")
+                print(f"\r处理进度: {i}/{len(file_urls)} | 当前收集: {len(node_collector)} 个", end="")
             except Exception as e:
                 logging.error(f"处理文件时产生异常: {e}")
     print() # 换行
@@ -231,6 +257,7 @@ def extraction_phase(file_urls):
 
 def testing_phase():
     """阶段三：测试节点延迟并排序"""
+    all_collected_nodes = node_collector.get_all()
     logging.info(f"\n--- 阶段 3/4: 测试 {len(all_collected_nodes)} 个节点的延迟 ---")
     valid_nodes = []
     if not all_collected_nodes:
@@ -258,6 +285,7 @@ def testing_phase():
 
 def output_phase(valid_nodes):
     """阶段四：输出结果到文件"""
+    all_collected_nodes = node_collector.get_all()
     logging.info(f"\n--- 阶段 4/4: 输出结果 ---")
     logging.info(f"总共收集到 {len(all_collected_nodes)} 个唯一节点，其中 {len(valid_nodes)} 个有效。")
 
@@ -316,6 +344,6 @@ if __name__ == "__main__":
     extraction_phase(file_urls_to_process)
     tested_nodes = testing_phase()
     output_phase(tested_nodes)
-    commit_and_push_results()
+    # commit_and_push_results()
     end_time = time.time()
     logging.info(f"\n--- 任务完成 (总耗时: {end_time - start_time:.2f} 秒) ---")
